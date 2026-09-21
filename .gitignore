@@ -1,0 +1,22 @@
+.venv/
+.vscode/
+.idea/
+node_modules/
+.env
+.env.*
+!.env.example
+data/*
+!data/.gitkeep
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.log
+
+# 本地演示素材、调试产物与比赛原始附件
+bgm.mp3
+_*.txt
+*.xlsx
+docs/*.png
+docs/验证结果.json
+docs/系统分析.md
+docs/需求与方案说明.md
