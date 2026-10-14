@@ -1,0 +1,170 @@
+@media(min-width:760px) {
+  body:has(.home-page) .site-header {
+    max-width:620px;
+    padding-left:38px;
+    padding-right:38px
+  }
+  body:has(.upload-page) .site-header,body:has(.crop-page) .site-header,body:has(.waking-page) .site-header,body:has(.success-page) .site-header,body:has(.result-page) .site-header,body:has(.puzzle-screen) .site-header,body:has(.library-page) .site-header {
+    max-width:620px;
+    padding-left:38px;
+    padding-right:38px
+  }
+  .design-page,.flow-screen,.wrap {
+    box-shadow:0 0 30px rgba(30,72,108,.08)
+  }
+  .home-page {
+    max-width:620px;
+    min-height:900px;
+    padding-left:38px;
+    padding-right:38px
+  }
+  .upload-page,.crop-page,.waking-page,.success-page,.result-page,.puzzle-screen,.library-page {
+    max-width:620px
+  }
+  .photo-stack {
+    width:360px;
+    margin:auto
+  }
+  .design-next {
+    width:320px
+  }
+  .cards {
+    grid-template-columns:repeat(2,1fr)
+  }
+}
+
+@media(min-width:1000px) {
+  body:has(.admin-screen) .site-header {
+    max-width:none;
+    padding-left:max(26px,calc((100% - 1180px)/2));
+    padding-right:max(26px,calc((100% - 1180px)/2))
+  }
+  .wrap:has(.admin-login),.wrap:has(.stats) {
+    max-width:1180px;
+    min-height:calc(100vh - 98px);
+    padding:60px;
+    background:#f4f7fa;
+    box-shadow:none
+  }
+  .wrap:has(.stats) .stats {
+    grid-template-columns:repeat(4,1fr)
+  }
+  .wrap:has(.stats) .admin-grid {
+    grid-template-columns:1.5fr 1fr
+  }
+  .admin-login {
+    margin-top:130px
+  }
+}
+
+@media(max-width:430px) {
+  .site-header {
+    gap:8px
+  }
+  .brand {
+    font-size:18px
+  }
+  .brand-mark {
+    width:52px;
+    height:52px
+  }
+  .site-header nav {
+    gap:18px
+  }
+  .site-header nav button {
+    font-size:14px
+  }
+  .design-page,.flow-screen,.wrap {
+    min-height:calc(100vh - 98px)
+  }
+  .intro-card {
+    padding-left:22px;
+    padding-right:22px
+  }
+  .intro-card h1 {
+    font-size:20px
+  }
+  .photo-picker {
+    width:100%
+  }
+  .image-placeholder {
+    width:100%
+  }
+  .success-visual {
+    width:100%;
+    height:auto;
+    aspect-ratio:358/472
+  }
+  .result-video {
+    width:100%
+  }
+}
+
+@media(max-width:759px) {
+  .site-header {
+    gap:8px
+  }
+  .brand {
+    flex-shrink:0;
+    white-space:nowrap;
+    font-size:18px
+  }
+  .brand-mark {
+    width:52px;
+    height:52px
+  }
+  .site-header nav {
+    gap:18px
+  }
+  .site-header nav button {
+    font-size:14px
+  }
+}
+
+@media(max-width:900px) {
+  .dashboard {
+    grid-template-columns:1fr
+  }
+  .dashboard>aside {
+    display:none
+  }
+  .dashboard>main {
+    padding:25px
+  }
+  .dashboard>main>header {
+    display:block
+  }
+  .admin-tools {
+    flex-wrap:wrap
+  }
+  .dashboard .stats,.dashboard .admin-grid {
+    grid-template-columns:1fr 1fr
+  }
+}
+
+/* Responsive alert alignment */
+.error {
+  width:100%;
+  max-width:430px;
+  margin:0 auto;
+  padding:12px 18px;
+  align-items:center;
+  gap:12px
+}
+
+.error button {
+  flex:0 0 auto;
+  font-size:22px
+}
+
+@media(min-width:760px) {
+  body:has(.puzzle-screen) .error {
+    max-width:620px
+  }
+  body:has(.home-page) .error {
+    max-width:620px
+  }
+  body:has(.upload-page) .error,body:has(.crop-page) .error,body:has(.waking-page) .error,body:has(.success-page) .error,body:has(.result-page) .error {
+    max-width:620px
+  }
+}

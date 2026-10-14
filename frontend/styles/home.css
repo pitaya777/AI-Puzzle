@@ -1,0 +1,90 @@
+.design-page {
+  width:100%;
+  max-width:430px;
+  min-height:834px;
+  margin:0 auto;
+  padding:22px 34px 42px;
+  background:var(--page);
+  position:relative;
+  overflow:hidden
+}
+
+.home-page {
+  padding-top:24px
+}
+
+.intro-card {
+  margin:0 auto 42px;
+  padding:23px 30px 24px;
+  border-radius:24px;
+  background:rgba(255,255,255,.52);
+  box-shadow:var(--shadow);
+  width: 90%;
+}
+
+.intro-card h1 {
+  font-size:30px;
+  font-weight:400;
+  margin:0 0 12px;
+  white-space:nowrap
+}
+
+.intro-card p {
+  font-size:20px;
+  line-height:1.55;
+  margin:0;
+  color:#233e60
+}
+
+.photo-stack {
+  height:470px;
+  position:relative
+}
+
+.photo-stack figure {
+  position:absolute;
+  margin:0;
+  padding:13px;
+  background:#fff;
+  border:1px solid #d7e4ef;
+  border-radius:20px;
+  box-shadow:var(--shadow)
+}
+
+.photo-stack img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:14px
+}
+
+.photo-back {
+  width:324px;
+  height:446px;
+  left:0;
+  top:0;
+  transform:rotate(-1deg)
+}
+
+.photo-front {
+  width:326px;
+  height:442px;
+  right:-4px;
+  top:20px;
+  transform:rotate(8deg);
+  padding-bottom:52px!important
+}
+
+.photo-front figcaption {
+  position:absolute;
+  left:22px;
+  bottom:16px;
+  font-size:14px;
+  transform:rotate(-1deg)
+}
+
+.design-cta {
+  display:flex;
+  width:210px;
+  margin:30px auto 0
+}

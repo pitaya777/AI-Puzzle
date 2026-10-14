@@ -1,0 +1,180 @@
+:root {
+  font-family:"Source Han Sans SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  color:#17375e;
+  background:#f2f2f2;
+  font-size:14px;
+  line-height:1.55;
+  --page:#e6f3ff;
+  --blue:#4398ea;
+  --ink:#17375e;
+  --muted:#536b84;
+  --line:#c7dced;
+  --card:#fff;
+  --shadow:0 3px 8px rgba(19,55,94,.22)
+}
+
+* {
+  box-sizing:border-box
+}
+
+html {
+  background:#f2f2f2
+}
+
+body {
+  margin:0;
+  min-width:320px;
+  background:#f2f2f2
+}
+
+button,input,textarea {
+  font:inherit;
+  color:inherit
+}
+
+button {
+  border:0;
+  background:none;
+  cursor:pointer
+}
+
+button:disabled {
+  opacity:.42;
+  cursor:not-allowed
+}
+
+a {
+  text-decoration:none;
+  color:inherit
+}
+
+.hidden {
+  display:none!important
+}
+
+.site-header {
+  width:100%;
+  max-width:430px;
+  height:98px;
+  margin:0 auto;
+  padding:0 26px;
+  display:flex;
+  align-items:center;
+  gap:35px;
+  position:relative;
+  z-index:10;
+  background:var(--page);
+  border-bottom:1px solid #fff
+}
+
+.brand {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:21px;
+  color:var(--ink)
+}
+
+.brand-mark {
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  object-fit:cover;
+  box-shadow:0 2px 5px #718aa2
+}
+
+.brand small {
+  display:none
+}
+
+.site-header nav {
+  margin-left:auto;
+  display:flex;
+  gap:32px
+}
+
+.site-header nav button {
+  font-size:16px;
+  color:var(--ink);
+  white-space:nowrap
+}
+
+.site-header nav button:hover {
+  text-decoration:underline
+}
+
+.guest {
+  display:none
+}
+
+main {
+  min-height:calc(100vh - 98px)
+}
+
+footer {
+  display:none
+}
+
+.primary,.secondary,.danger {
+  min-height:48px;
+  padding:10px 28px;
+  border-radius:28px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:25px;
+  transition:.18s
+}
+
+.primary {
+  background:var(--blue);
+  color:#15385f
+}
+
+.primary:hover {
+  filter:brightness(.96);
+  transform:translateY(-1px)
+}
+
+.secondary {
+  background:#fff;
+  border:1px solid #9fbed8
+}
+
+.danger {
+  color:#fff;
+  background:#cf6259
+}
+
+.wide {
+  width:100%
+}
+
+.plain-cancel,.text-back {
+  font-size:18px;
+  color:#274565
+}
+
+.text-back {
+  text-align:left
+}
+
+.error {
+  padding:10px 6%;
+  display:flex;
+  justify-content:space-between;
+  background:#fff0ea;
+  color:#984334
+}
+
+.toast {
+  position:fixed;
+  left:50%;
+  bottom:24px;
+  z-index:50;
+  transform:translateX(-50%);
+  padding:10px 20px;
+  border-radius:24px;
+  background:#245f91;
+  color:#fff
+}

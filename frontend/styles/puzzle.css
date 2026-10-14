@@ -1,0 +1,512 @@
+.flow-screen,.wrap {
+  width:100%;
+  max-width:430px;
+  min-height:834px;
+  margin:0 auto;
+  padding:0 40px 45px;
+  background:var(--page)
+}
+
+.puzzle-screen {
+  overflow:hidden
+}
+
+.puzzle-heading {
+  height:82px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px
+}
+
+.puzzle-heading>div {
+  display:flex;
+  align-items:baseline;
+  gap:10px
+}
+
+.puzzle-heading span {
+  font-size:24px;
+  font-weight:400
+}
+
+.puzzle-heading h1 {
+  margin:0;
+  font-size:25px;
+  font-weight:400;
+  white-space:nowrap
+}
+
+.puzzle-heading img {
+  width:66px;
+  height:66px;
+  border-radius:18px;
+  object-fit:cover
+}
+
+.board-wrap {
+  width:274px;
+  height:398px;
+  margin:1px auto 20px;
+  padding:0;
+  border:2px solid #f2f3f6;
+  background:rgba(255,255,255,.44)
+}
+
+.board {
+  display:grid;
+  width:100%;
+  height:100%;
+  gap:1px;
+  background:#dbe9f3
+}
+
+.slot {
+  padding:0;
+  min-width:0;
+  border:0;
+  background:rgba(255,255,255,.52);
+  color:#8a9aac;
+  font-size:17px
+}
+
+.slot span {
+  display:block
+}
+
+.slot.done,.tile {
+  background-image:var(--photo)!important;
+  background-repeat:no-repeat!important
+}
+
+.scattered-panel {
+  width:351px;
+  height:137px;
+  margin:0 auto;
+  position:relative;
+  /* border-radius:50% 50% 22px 22px / 30px 30px 22px 22px; */
+  background:rgba(255,255,255,.42)
+}
+
+.pieces {
+  width:100%;
+  height:100%;
+  position:relative
+}
+
+.tile {
+  position:absolute;
+  width:59px;
+  height:85px;
+  padding:0;
+  border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 2px 4px rgba(24,61,92,.15);
+  transition:transform .16s,filter .16s
+}
+
+.tile:hover {
+  z-index:4;
+  filter:brightness(1.04)
+}
+
+.tile.selected {
+  z-index:5;
+  outline:3px solid var(--blue);
+  outline-offset:2px;
+  transform:translateY(-5px) rotate(0deg)!important
+}
+
+.piece-1 {left:28px;top:20px;transform:rotate(-6deg)}
+.piece-2 {left:80px;top:44px;transform:rotate(5deg)}
+.piece-3 {left:134px;top:31px;transform:rotate(-3deg)}
+.piece-4 {left:180px;top:8px;transform:rotate(7deg)}
+.piece-5 {left:199px;top:40px;transform:rotate(-7deg)}
+.piece-6 {left:234px;top:11px;transform:rotate(4deg)}
+.piece-7 {left:277px;top:37px;transform:rotate(-4deg)}
+.piece-8 {left:13px;top:40px;transform:rotate(5deg)}
+.piece-9 {left:95px;top:8px;transform:rotate(-5deg)}
+
+.complete {
+  padding:24px 16px;
+  text-align:center
+}
+
+.complete-icon {
+  width:40px;
+  height:40px;
+  margin:auto;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--blue);
+  color:#fff
+}
+
+.complete h3 {
+  margin:7px 0 2px;
+  font-size:14px
+}
+
+.complete p {
+  margin:0;
+  font-size:10px
+}
+
+.puzzle-summary {
+  width:350px;
+  max-width:100%;
+  margin:0 auto;
+  min-height:86px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 0 0 10px
+}
+
+.progress-card {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start
+}
+
+.progress-card strong {
+  height:58px;
+  display:flex;
+  align-items:center;
+  font-size:50px;
+  line-height:1;
+  font-weight:400;
+  color:var(--blue)
+}
+
+.progress-card strong span {
+  margin-left:4px;
+  font-size:38px
+}
+
+.progress-card small {
+  font-size:14px;
+  color:var(--ink)
+}
+
+.generate-button {
+  width:130px;
+  min-height:40px;
+  padding:3px 14px;
+  border-radius:18px;
+  background:var(--blue);
+  color:#17375e;
+  font-size:18px
+}
+
+.generate-button span {
+  margin-left:4px
+}
+
+.generate-button:disabled {
+  background:#c7cdd2;
+  color:#6c747b;
+  opacity:1
+}
+
+.memory-list {
+  width:350px;
+  max-width:100%;
+  margin:8px auto 0
+}
+
+.milestone {
+  min-height:67px;
+  display:grid;
+  grid-template-columns:46px 1fr 18px;
+  align-items:center;
+  column-gap:0;
+  padding:0 16px;
+  border-radius:13px;
+  background:rgba(255,255,255,.72);
+  cursor:pointer
+}
+
+.milestone>i {
+  font-style:normal;
+  color:var(--blue);
+  font-size:14px
+}
+
+.milestone button {
+  padding:0;
+  text-align:left;
+  font-size:14px
+}
+
+.milestone button:disabled {
+  opacity:1
+}
+
+.milestone small {
+  display:block;
+  margin-top:1px;
+  font-size:10px;
+  color:#73869a
+}
+
+.milestone>span {
+  color:#8b99a8;
+  font-size:26px
+}
+
+@media(max-width:390px) {
+  .flow-screen,.wrap {
+    padding-left:24px;
+    padding-right:24px
+  }
+
+  .scattered-panel {
+    left:50%;
+    margin-left:-175.5px;
+    margin-right:0
+  }
+
+  .piece-7 {
+    left:auto;
+    right:10px
+  }
+}
+
+@media(max-width:360px) {
+  .board-wrap {
+    width:100%;
+    height:auto;
+    aspect-ratio:274/398
+  }
+}
+.modal-bg {
+  position:fixed;
+  inset:0;
+  z-index:40;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(0,0,0,.1)
+}
+
+.modal {
+  width:min(360px,100%);
+  padding:28px 24px;
+  border-radius:22px;
+  background:var(--page);
+  box-shadow:0 18px 50px rgba(18,47,76,.3)
+}
+
+.modal.memory-question {
+  width:min(361px,100%);
+  min-height:364px;
+  position:relative;
+  padding:0;
+  overflow:hidden;
+  border-radius:15px;
+  background:#e6f3ff;
+  box-shadow:3px 3px 8px rgba(0,0,0,.25)
+}
+
+.memory-meta {
+  position:absolute;
+  top:26px;
+  left:21px;
+  display:flex;
+  align-items:center;
+  color:#8097ac;
+  font-size:10px;
+  line-height:15px;
+  letter-spacing:.01em
+}
+
+.memory-question h2 {
+  position:absolute;
+  top:56px;
+  left:22px;
+  width:315px;
+  margin:0;
+  color:#02274c;
+  font-size:19px;
+  font-weight:400;
+  line-height:1.7
+}
+
+.memory-question>p {
+  position:absolute;
+  top:130px;
+  left:24px;
+  margin:0;
+  color:#173f67;
+  font-size:14px;
+  line-height:21px
+}
+
+.modal textarea {
+  position:absolute;
+  top:168px;
+  left:32px;
+  width:298px;
+  height:130px;
+  min-height:0;
+  padding:12px;
+  border:0;
+  border-radius:10px;
+  color:#173f67;
+  background:#fff;
+  font:14px/1.6 inherit;
+  resize:none;
+  outline:none
+}
+
+.modal textarea:focus {
+  box-shadow:0 0 0 2px rgba(64,151,232,.28)
+}
+
+.memory-question-footer {
+  position:absolute;
+  left:18px;
+  right:43px;
+  bottom:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-around
+}
+
+.memory-question .primary {
+  width:122px;
+  height:31px;
+  min-height: 34px;
+  margin:0;
+  padding:0 13px;
+  border:0;
+  border-radius:3px;
+  background:#4097ee;
+  color:#fff;
+  font-size:13px;
+  font-weight:400;
+  box-shadow:none
+}
+
+.memory-question .primary span {
+  margin-left:2px
+}
+
+.memory-section-title {
+  display:flex;
+  align-items:center;
+  color:#173f67;
+  white-space:nowrap
+}
+
+.memory-section-title b {
+  margin-right:4px;
+  font-size:18px;
+  font-weight:400
+}
+
+.memory-section-title span {
+  font-size:16px
+}
+
+.memory-question-mascot {
+  position:absolute;
+  right:7px;
+  bottom:11px;
+  z-index:2;
+  width:48px;
+  height:70px;
+  object-fit:contain
+}
+
+.memory-review-bg {
+  backdrop-filter:blur(5px)
+}
+
+.memory-review {
+  position:relative;
+  width:min(361px,100%);
+  padding:30px 28px;
+  border-radius:4px;
+  background:#e6f3ff;
+  box-shadow:3px 3px 8px rgba(0,0,0,.25)
+}
+
+.memory-review-item {
+  width:100%;
+  min-height:58px;
+  display:grid;
+  grid-template-columns:48px 1fr 18px;
+  align-items:center;
+  margin:0 0 15px;
+  padding:7px 12px;
+  border:0;
+  border-radius:12px;
+  background:#fff;
+  color:#173f67;
+  text-align:left
+}
+
+.memory-review-item:last-child {
+  margin-bottom:0
+}
+
+.memory-review-item i {
+  color:#4097ee;
+  font-size:13px;
+  font-style:normal
+}
+
+.memory-review-item span {
+  display:flex;
+  flex-direction:column;
+  min-width:0
+}
+
+.memory-review-item b {
+  overflow:hidden;
+  font-size:14px;
+  line-height:20px;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+
+.memory-review-item small {
+  color:#a7b0b8;
+  font-size:11px;
+  line-height:16px
+}
+
+.memory-review-item em {
+  color:#9ca7b0;
+  font-size:25px;
+  font-style:normal;
+  font-weight:300;
+  text-align:right
+}
+
+.memory-review-item:disabled {
+  cursor:not-allowed;
+  opacity:.58
+}
+
+.memory-review-item:not(:disabled):hover,
+.memory-review-item:not(:disabled):focus-visible {
+  box-shadow:0 0 0 2px rgba(64,151,238,.25)
+}
+
+@media(max-width:390px) {
+  .modal-bg {
+    padding:12px
+  }
+
+  .modal.memory-question {
+    transform:scale(.94)
+  }
+
+  .memory-review {
+    padding-right:18px;
+    padding-left:18px
+  }
+}

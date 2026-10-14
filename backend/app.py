@@ -1,5 +1,5 @@
 from __future__ import annotations
-import base64, hashlib, hmac, io, json, os, secrets, shutil, sqlite3, subprocess, sys, threading, time
+import base64, hashlib, hmac, io, json, mimetypes, os, secrets, shutil, sqlite3, subprocess, sys, threading, time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -77,7 +77,8 @@ async def security(request:Request,call_next):
         if content_length.isdigit() and int(content_length)>22_000_000:return JSONResponse({'detail':'请求过大'},413)
     response=await call_next(request)
     response.headers.update({'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'same-origin'})
-    if request.url.path.startswith('/api'):response.headers['Cache-Control']='no-store'
+    if request.url.path.startswith(('/api','/assets')):
+        response.headers['Cache-Control']='no-store, max-age=0'
     return response
 
 @app.get('/api/health')
@@ -313,7 +314,7 @@ def update_job(jid,**values):
 def validate_story(result):
     if not isinstance(result,dict):return False
     if not isinstance(result.get('title'),str) or not result['title'].strip() or len(result['title'].strip())>16:return False
-    if not isinstance(result.get('story'),str) or not 500<=len(result['story'].strip())<=800:return False
+    if not isinstance(result.get('story'),str) or not 260<=len(result['story'].strip())<=340:return False
     if not isinstance(result.get('video_prompt'),str) or not 900<=len(result['video_prompt'].strip())<=3500:return False
     scenes=result.get('scenes')
     if not isinstance(scenes,list) or len(scenes)!=7:return False
@@ -329,7 +330,7 @@ def deepseek_story(answers):
 
 只返回合法JSON，字段如下：
 1. title：16字以内。
-2. story：600至700个中文字符，具有开端、发展、转折和升华结尾。
+2. story：约300个中文字符，控制在280至320个中文字符，具有开端、发展、转折和升华结尾。
 3. scenes：恰好7项，时间段必须依次为0-3、3-7、7-11、11-16、16-21、21-25、25-30；每项包含整数start、end，以及非空字符串visual、performance、camera、music、sound_effect、narration、transition。narration不超过16字。music必须写明该时段配乐的乐器、情绪和强弱变化；sound_effect必须写明环境音或动作音。
 4. video_prompt：900至2500字，是可以原样交给Seedance 2.5的最终中文提示词，不能只是摘要。
 
@@ -359,7 +360,7 @@ video_prompt必须严格采用以下导演模板：
                 for key in ('visual','performance','camera','music','sound_effect','narration','transition'):scene[key]=scene[key].strip()
             return result
         if attempt==0:
-            messages.extend([{'role':'assistant','content':json.dumps(result,ensure_ascii=False)},{'role':'user','content':'上一个JSON未通过校验。严格按既定模板修正：story为600至700字；scenes恰好7项且时间为0-3、3-7、7-11、11-16、16-21、21-25、25-30，每项包含visual、performance、camera、music、sound_effect、narration、transition；video_prompt为900至2500字并逐段包含“起止 秒”、画面、表演、镜头、背景音乐、环境/动作音效、旁白和转场。全片使用同一位年轻温柔中文女声，不生成字幕或其他文字。只返回合法JSON。'}])
+            messages.extend([{'role':'assistant','content':json.dumps(result,ensure_ascii=False)},{'role':'user','content':'上一个JSON未通过校验。严格按既定模板修正：story为280至320字；scenes恰好7项且时间为0-3、3-7、7-11、11-16、16-21、21-25、25-30，每项包含visual、performance、camera、music、sound_effect、narration、transition；video_prompt为900至2500字并逐段包含“起止 秒”、画面、表演、镜头、背景音乐、环境/动作音效、旁白和转场。全片使用同一位年轻温柔中文女声，不生成字幕或其他文字。只返回合法JSON。'}])
     raise ValueError('文本AI连续两次未满足故事和分镜格式，请重试')
 def seedance_source(photo:Path,prompt:str,folder:Path,name:str):
     """Submit once, persist provider id, poll safely, and download the short-lived result."""
@@ -440,6 +441,7 @@ WEB=ROOT/'frontend'
 def frontend_js():return FileResponse(WEB/'app.js',media_type='text/javascript')
 @app.get('/assets/style.css')
 def frontend_css():return FileResponse(WEB/'style.css',media_type='text/css')
+mimetypes.add_type('text/javascript', '.js')
 app.mount('/assets',StaticFiles(directory=WEB),name='assets')
 @app.get('/{path:path}')
 def frontend(path:str):return FileResponse(WEB/'index.html',media_type='text/html')

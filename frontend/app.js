@@ -1,39 +1,570 @@
-const $=(s,p=document)=>p.querySelector(s), $$=(s,p=document)=>[...p.querySelectorAll(s)];
-const state={page:'home',creations:[],jobs:[],active:null,job:null,config:{},selected:null,question:-1,stats:null,admin:false,share:null,pieceOrders:{}};
-const questions=['看到这张照片，你最先想到的校园地点是哪里？这里有什么故事？','在校园里，你最想感谢谁？为什么？','哪个瞬间让你觉得自己真正成长？','如果回到初到校园的那一天，你想告诉自己什么？'];
-const labels=['关于这个地方','关于那些相遇','关于我的成长','写给那时的自己'];
-function id(){return [...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,'0')).join('')}
-async function api(path,options={}){let r=await fetch('/api'+path,{...options,headers:options.body instanceof FormData?{}:{'Content-Type':'application/json',...(options.headers||{})}});if(!r.ok){let e;try{e=await r.json()}catch{e={detail:'请求失败'}}throw Error(e.detail||'请求失败')}return r.json()}
-function alertError(e){$('#alert').innerHTML=`<div class="error">${esc(e.message)}<button>×</button></div>`;$('#alert button').onclick=()=>$('#alert').innerHTML=''}
-function toast(t){$('#toast').innerHTML=`<div class="toast">✓ ${esc(t)}</div>`;setTimeout(()=>$('#toast').innerHTML='',3000)}
-function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function track(kind){api('/events',{method:'POST',body:JSON.stringify({id:id(),kind})}).catch(()=>{})}
-async function refresh(){[state.creations,state.jobs,state.config]=await Promise.all([api('/creations'),api('/jobs'),api('/config')])}
-function jobFor(cid){return state.jobs.find(x=>x.creation===cid)}
-function navigate(page){state.page=page;state.selected=null;history.replaceState(null,'','#'+page);render();scrollTo(0,0);if(page==='library')refresh().then(render).catch(alertError);if(page==='admin')loadStats()}
-document.addEventListener('click',e=>{let b=e.target.closest('[data-go]');if(b)navigate(b.dataset.go)});
-function home(){return `<section class="hero"><div><span class="eyebrow">校园记忆创作计划 · VOL. 01</span><h1>有些时光，<br>值得<em>再拼一次。</em></h1><p>从一张照片出发，拾起校园里的点滴。<br>让那些来不及说的故事，成为一部属于你的纪念短片。</p><button class="primary" id="begin">开始拾光 ↗</button></div><div class="memory-art"><div class="campus"></div></div></section><section class="journey"><span class="eyebrow">HOW IT WORKS</span><h2>让回忆，有迹可循。</h2><div class="steps"><article><b>01</b><h3>选一张，旧时光</h3><p>上传一张校园照片，框住记忆起点。</p></article><article><b>02</b><h3>拼一拼，那些年</h3><p>九块碎片归位，回忆也一点点清晰。</p></article><article><b>03</b><h3>聊一聊，心里话</h3><p>四段真实回答成为创作素材。</p></article><article><b>04</b><h3>留一部，纪念片</h3><p>生成30秒竖屏青春纪念视频。</p></article></div></section>`}
-function upload(){return `<section class="wrap"><button class="back" data-go="home">‹ 返回首页</button><div class="heading"><span class="eyebrow">01 / 从照片开始</span><h1>哪一刻，让你想起校园？</h1><p>选一张照片，留住当时的风景与心情。</p></div><div class="upload-grid"><label class="drop" id="drop"><strong>＋ 把一段时光，放在这里</strong><p>点击选择你的校园照片</p><small>JPG / PNG · 最大5MB</small><input id="photo" type="file" accept="image/jpeg,image/png"></label><div class="preview hidden" id="preview"><img id="previewImage" style="object-position:50% 50%"><small>拖动画面焦点，预览最终9:16裁剪</small></div><aside class="controls"><h2>把记忆留在画面中央。</h2><p>移动两个滑块，人物或重要景物会在预览中同步移动。</p><div id="focus" class="hidden"><label>左右位置<input id="fx" type="range" min="0" max="1" step=".01" value=".5"></label><label>上下位置<input id="fy" type="range" min="0" max="1" step=".01" value=".5"></label></div><hr><h3>九块时光</h3><p class="note">拼图固定为3 × 3，碎片会自动打乱顺序。</p><button class="primary" id="upload" disabled>开始拼回忆 →</button></aside></div></section>`}
-function tileStyle(i,c){let x=(i%c.columns)/(c.columns-1)*100,y=Math.floor(i/c.columns)/(c.rows-1)*100;return `background-size:${c.columns*100}% ${c.rows*100}%;background-position:${x}% ${y}%`}
-function shuffledPieces(c){if(!state.pieceOrders[c.id]){let a=[...Array(9).keys()];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}if(a.every((v,i)=>v===i))a.push(a.shift());state.pieceOrders[c.id]=a}return state.pieceOrders[c.id].filter(i=>!c.placed.includes(i))}
-function puzzle(){let c=state.active,total=9,progress=c.placed.length/total,remaining=shuffledPieces(c);return `<section class="wrap"><button class="back" data-go="library">‹ 返回我的作品</button><div class="heading"><span class="eyebrow">02 / 把时光拼回来</span><h1>${progress===1?'每一块，都有了归处。':'慢慢来，回忆正在归位。'}</h1><p>先点选下方被打乱的碎片，再点击对应编号的位置。正确归位后自动保存。</p></div><div class="puzzle-grid"><div class="board-wrap"><div class="board" style="grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);--photo:url('/api/creations/${c.id}/photo')">${[...Array(total).keys()].map(i=>`<button class="slot ${c.placed.includes(i)?'done':''}" data-slot="${i}" style="${c.placed.includes(i)?tileStyle(i,c):''}">${c.placed.includes(i)?'':i+1}</button>`).join('')}</div></div><aside><div class="progress"><strong>${Math.round(progress*100)}%</strong><div class="bar"><i style="width:${progress*100}%"></i></div><small>${c.placed.length} / 9 块已归位</small></div><div>${labels.map((x,i)=>`<div class="milestone ${c.answers[i]?'done':''}"><i>${c.answers[i]?'✓':(i+1)*25+'%'}</i><button data-answer="${i}" ${progress<(i+1)/4?'disabled':''}>${x}<small>${c.answers[i]?'已保存 · 点击编辑':'等待解锁'}</small></button></div>`).join('')}</div>${progress<1?`<h3>散落的时光</h3><div class="pieces pieces-3" style="--photo:url('/api/creations/${c.id}/photo')">${remaining.map(i=>`<button aria-label="碎片${i+1}" data-tile="${i}" class="tile ${state.selected===i?'selected':''}" style="${tileStyle(i,c)}"></button>`).join('')}</div>`:`<div class="complete"><h3>九块时光，已经完整。</h3><p>回答最后一段回忆后，我们会为你续写成一部30秒校园纪念片。</p></div>${c.answers.every(Boolean)?'<button class="primary" id="generate">让回忆开始成片 →</button>':''}`}</aside></div></section>`}
-function creating(){return `<section class="transition-page"><div class="memory-loader"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="eyebrow">REPAINTING MEMORY</span><h1>旧照片正在换一种方式醒来。</h1><p>我们正把真实面孔化作原创漫画角色，<br>请给这段时光一点点时间。</p></section>`}
-function celebrate(){return `<section class="transition-page celebrate"><div class="celebrate-mark">✓</div><span class="eyebrow">EVERY PIECE IS HOME</span><h1>散落的时光，终于完整。</h1><p>你的故事已经启程。即梦正在翻开校园记忆，<br>一部有开头、有回响的30秒纪念片正在生成。</p><div class="loading-line"><i></i></div></section>`}
-function library(){return `<section class="wrap"><div class="heading"><span class="eyebrow">MY MEMORY COLLECTION</span><h1>我的时光收藏夹</h1><p>访客作品保存在当前浏览器会话。清除Cookie后无法找回，请及时下载。</p><button class="primary" id="new">＋ 新建一段回忆</button></div>${state.creations.length?`<div class="cards">${state.creations.map(c=>{let j=jobFor(c.id);return `<article class="card"><img src="/api/creations/${c.id}/photo"><div class="card-body"><small>${new Date(c.created).toLocaleDateString()} · ${c.rows*c.columns}块</small><h3>${esc(j?.result?.title||'一段未完待续的校园时光')}</h3><div class="card-actions"><button data-open="${c.id}">${j?'查看作品':'继续拼图'} →</button><button data-delete="${c.id}">删除</button></div></div></article>`}).join('')}</div>`:'<div class="empty"><h2>第一段回忆，还在等你。</h2><p>从一张校园照片开始，给时光一个归处。</p></div>'}</section>`}
- function work(){let j=state.job,url=j.share?location.origin+'/?share='+j.share:'';return `<section class="wrap"><button class="back" data-go="library">‹ 返回我的作品</button><div class="heading"><span class="eyebrow">04 / 一份属于你的珍藏</span><h1>${esc(j.result?.title||'让回忆，成为一部电影。')}</h1><p>即梦 Seedance AI 创作</p></div><div class="result-grid"><div class="video">${j.status==='SUCCEEDED'?`<video src="/api/jobs/${j.id}/video" controls playsinline></video>`:`<div><h2>${j.status==='FAILED'?'生成暂时停下了':'回忆正在成片'}</h2><p>${esc(j.stage)}</p><small>${esc(j.error||'可以离开页面，任务会继续。')}</small>${j.status==='FAILED'&&j.attempts<3?'<br><button class="secondary" id="retry">重试即梦生成</button>':''}</div>`}</div><article><span class="eyebrow">THE STORY BEHIND</span><h2>画面之外，都是心里话。</h2><div class="story">${esc(j.result?.story||'故事整理完成后会显示在这里。')}</div>${j.status==='SUCCEEDED'?`<div class="actions"><a class="primary" href="/api/jobs/${j.id}/video?download=true">下载视频</a><button class="secondary" id="share">分享链接</button>${j.share?'<button id="revoke">撤销分享</button>':''}</div>${j.share?`<div class="share"><input value="${esc(url)}" readonly><button class="secondary" id="copy">复制链接</button><p>撤销后此链接立即失效。</p></div>`:''}`:''}</article></div></section>`}
-function shared(){return `<section class="wrap"><div class="heading"><span class="eyebrow">A MEMORY SHARED WITH YOU</span><h1>${esc(state.share?.result?.title||'一段分享给你的校园时光')}</h1></div>${state.share?`<div class="result-grid"><div class="video"><video src="/api/shared/${new URLSearchParams(location.search).get('share')}/video" controls></video></div><article><div class="story">${esc(state.share.result.story)}</div></article></div>`:'<div class="empty">分享已撤销或作品不存在。</div>'}</section>`}
-function admin(){if(!state.admin)return `<section class="wrap"><div class="heading"><span class="eyebrow">CAMPUS / ADMINISTRATION</span><h1>拾光数据室</h1></div><form class="admin-login" id="login"><h2>进入管理空间</h2><p>密码保存在项目的 data/admin-password.txt</p><input id="password" type="password" required placeholder="管理密码"><button class="primary">进入后台 →</button></form></section>`;let s=state.stats;return `<section class="wrap"><div class="heading"><span class="eyebrow">CAMPUS / ADMINISTRATION</span><h1>拾光数据室</h1><p>访问、分享与任务状态一览。</p></div><div class="admin-tools actions"><input id="start" type="date"><input id="end" type="date"><button class="secondary" id="statsRefresh">更新统计</button><button id="logout">退出</button></div><div class="stats">${Object.entries({visit:'页面访问',share_click:'分享点击',share_copy:'复制成功',share_open:'分享打开'}).map(([k,v])=>`<article><span>${v}</span><strong>${s.total[k]}</strong><small>所选时段累计</small></article>`).join('')}</div><div class="admin-grid"><section class="panel"><h2>每日回响</h2><div class="table-scroll"><table><tr><th>日期</th><th>访问</th><th>点击</th><th>复制</th><th>打开</th></tr>${s.daily.map(d=>`<tr><td>${d.date}</td><td>${d.visit}</td><td>${d.share_click}</td><td>${d.share_copy}</td><td>${d.share_open}</td></tr>`).join('')||'<tr><td colspan="5">暂无事件</td></tr>'}</table></div></section><section class="panel"><h2>生成与配置</h2><div class="config-row"><span>DeepSeek</span><b>${state.config.textReady?'已配置':'未配置'}</b></div><div class="config-row"><span>Seedance 2.5</span><b>${state.config.videoReady?'已配置待实测':'未配置'}</b></div><div class="config-row"><span>费用预留 / 上限</span><b>¥${s.reserved} / ¥300</b></div><div class="config-row"><span>完成 / 失败</span><b>${s.jobs.SUCCEEDED||0} / ${s.jobs.FAILED||0}</b></div><p class="note">真实账单以服务商为准。密钥只放在本机.env。</p><h3>背景音乐</h3><p>${state.config.musicReady?'已配置用户音乐':'使用原创演示配乐'}</p><label class="secondary music-upload">上传MP3或WAV<input id="music" type="file" accept="audio/*"></label></section></div></section>`}
-function render(){let html=state.page==='home'?home():state.page==='upload'?upload():state.page==='creating'?creating():state.page==='celebrate'?celebrate():state.page==='puzzle'?puzzle():state.page==='library'?library():state.page==='work'?work():state.page==='shared'?shared():admin();$('#app').innerHTML=html;bind()}
-function bind(){if($('#begin'))$('#begin').onclick=()=>navigate('upload');if($('#new'))$('#new').onclick=()=>navigate('upload');if(state.page==='upload')bindUpload();if(state.page==='puzzle')bindPuzzle();if(state.page==='library')bindLibrary();if(state.page==='work')bindWork();if(state.page==='admin')bindAdmin()}
-function bindUpload(){let selected=null;const updateFocus=()=>{if($('#previewImage'))$('#previewImage').style.objectPosition=`${+$('#fx').value*100}% ${+$('#fy').value*100}%`};$('#photo').onchange=e=>{let f=e.target.files[0];if(!f)return;if(!['image/jpeg','image/png'].includes(f.type)||f.size>5e6)return alertError(Error('请选择5MB以内的JPG或PNG照片'));selected=f;$('#previewImage').src=URL.createObjectURL(f);$('#drop').classList.add('hidden');$('#preview').classList.remove('hidden');$('#focus').classList.remove('hidden');$('#upload').disabled=false;updateFocus()};$('#fx').oninput=updateFocus;$('#fy').oninput=updateFocus;$('#upload').onclick=async()=>{let fx=$('#fx').value,fy=$('#fy').value,fd=new FormData();fd.append('photo',selected);fd.append('focus_x',fx);fd.append('focus_y',fy);state.page='creating';render();try{state.active=await api('/creations',{method:'POST',body:fd});state.page='puzzle';render()}catch(e){state.page='upload';render();alertError(e)}}}
-function nextQuestion(){let c=state.active,p=c.placed.length/(c.rows*c.columns);let i=c.answers.findIndex((a,i)=>!a&&p>=(i+1)/4);if(i>=0)openQuestion(i)}
-function openQuestion(i){state.question=i;$('#modal').innerHTML=`<div class="modal-bg"><section class="modal"><span class="eyebrow">MEMORY ${i+1} / 04 · ${(i+1)*25}%</span><h2>${questions[i]}</h2><p>真实的心情就很好，必答且不超过100字。</p><textarea id="answer" maxlength="100" rows="5">${esc(state.active.answers[i])}</textarea><button class="primary" id="saveAnswer">保存这段回忆 →</button></section></div>`;$('#saveAnswer').onclick=async()=>{try{state.active=await api(`/creations/${state.active.id}/answer`,{method:'PUT',body:JSON.stringify({index:i,text:$('#answer').value})});$('#modal').innerHTML='';if(state.active.placed.length===9&&state.active.answers.every(Boolean))startGeneration();else{render();nextQuestion()}}catch(e){alertError(e)}}}
-async function startGeneration(){state.page='celebrate';render();await new Promise(r=>setTimeout(r,1800));try{state.job=await api(`/creations/${state.active.id}/generate`,{method:'POST',body:JSON.stringify({mode:'real'})});state.page='work';render();poll()}catch(e){state.page='puzzle';render();alertError(e)}}
-function bindPuzzle(){$$('[data-tile]').forEach(b=>b.onclick=()=>{state.selected=+b.dataset.tile;render()});$$('[data-slot]').forEach(b=>b.onclick=async()=>{if(state.selected===null)return;try{state.active=await api(`/creations/${state.active.id}/place`,{method:'POST',body:JSON.stringify({piece:state.selected,target:+b.dataset.slot})});state.selected=null;render();nextQuestion()}catch(e){alertError(e)}});$$('[data-answer]').forEach(b=>b.onclick=()=>openQuestion(+b.dataset.answer));if($('#generate'))$('#generate').onclick=startGeneration}
-function bindLibrary(){$$('[data-open]').forEach(b=>b.onclick=async()=>{let cid=b.dataset.open,j=jobFor(cid);try{if(j){state.job=j;state.page='work';render();poll()}else{state.active=await api('/creations/'+cid);state.page='puzzle';render();nextQuestion()}}catch(e){alertError(e)}});$$('[data-delete]').forEach(b=>b.onclick=()=>{$('#modal').innerHTML=`<div class="modal-bg"><section class="modal"><h2>删除这段回忆？</h2><p>原图、答案、视频和分享链接会一起永久删除。</p><div class="actions"><button class="secondary" id="cancel">取消</button><button class="danger" id="confirm">确认删除</button></div></section></div>`;$('#cancel').onclick=()=>$('#modal').innerHTML='';$('#confirm').onclick=async()=>{try{await api('/creations/'+b.dataset.delete,{method:'DELETE'});$('#modal').innerHTML='';await refresh();render();toast('作品已删除')}catch(e){alertError(e)}}})}
-function poll(){if(!state.job||!['QUEUED','RUNNING'].includes(state.job.status))return;setTimeout(async()=>{try{state.job=await api('/jobs/'+state.job.id);render();poll()}catch(e){alertError(e)}},1800)}
- function bindWork(){if($('#retry'))$('#retry').onclick=async()=>{try{state.job=await api('/jobs/'+state.job.id+'/retry',{method:'POST'});render();poll()}catch(e){alertError(e)}};if($('#share'))$('#share').onclick=async()=>{try{track('share_click');let r=await api('/jobs/'+state.job.id+'/share',{method:'POST'});state.job.share=r.token;render()}catch(e){alertError(e)}};if($('#copy'))$('#copy').onclick=async()=>{let url=location.origin+'/?share='+state.job.share;await navigator.clipboard.writeText(url);track('share_copy');toast('链接已复制')};if($('#revoke'))$('#revoke').onclick=async()=>{try{await api('/jobs/'+state.job.id+'/share',{method:'DELETE'});state.job.share=null;render();toast('分享已撤销')}catch(e){alertError(e)}}}
-async function loadStats(){try{state.stats=await api('/admin/stats');state.admin=true;render()}catch{state.admin=false;render()}}
-function bindAdmin(){if($('#login'))$('#login').onsubmit=async e=>{e.preventDefault();try{await api('/admin/login',{method:'POST',body:JSON.stringify({password:$('#password').value})});await loadStats()}catch(e){alertError(e)}};if($('#statsRefresh'))$('#statsRefresh').onclick=async()=>{try{state.stats=await api(`/admin/stats?start=${$('#start').value}&end=${$('#end').value}`);render()}catch(e){alertError(e)}};if($('#logout'))$('#logout').onclick=async()=>{await api('/admin/logout',{method:'POST'});state.admin=false;render()};if($('#music'))$('#music').onchange=async e=>{try{let fd=new FormData();fd.append('file',e.target.files[0]);await api('/admin/music',{method:'POST',body:fd});await refresh();await loadStats();toast('音乐已配置')}catch(e){alertError(e)}}}
-async function init(){try{await api('/session',{method:'POST'});track('visit');let token=new URLSearchParams(location.search).get('share');if(token){state.page='shared';state.share=await api('/shared/'+token);track('share_open')}else{await refresh();let route=location.hash.slice(1);if(['library','admin'].includes(route))state.page=route}render()}catch(e){alertError(e);render()}}
-init();
+import { $, $$, api, createId, escapeHtml, showError, showToast } from "./js/core.js";
+import { state, questions, memoryLabels } from "./js/state.js";
+import { renderHome, renderUpload, renderCrop } from "./js/pages/home.js";
+import { renderPuzzle } from "./js/pages/puzzle.js?v=modules9";
+import { renderCreating, renderCelebration, renderWork } from "./js/pages/generation.js?v=modules12";
+import { renderLibrary, renderShared } from "./js/pages/library.js?v=modules15";
+import { renderAdmin } from "./js/pages/admin.js";
+
+async function refreshData() {
+  [state.creations, state.jobs, state.config] = await Promise.all([
+    api("/creations"), api("/jobs"), api("/config"),
+  ]);
+}
+
+function findJob(creationId) {
+  return state.jobs.find((job) => job.creation === creationId);
+}
+
+function track(kind) {
+  api("/events", {
+    method: "POST",
+    body: JSON.stringify({ id: createId(), kind }),
+  }).catch(() => {});
+}
+
+function navigate(page) {
+  state.page = page;
+  state.selected = null;
+  history.replaceState(null, "", `#${page}`);
+  render();
+  scrollTo(0, 0);
+  if (page === "library") refreshData().then(render).catch(showError);
+  if (page === "admin") loadStats();
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-go]");
+  if (button) navigate(button.dataset.go);
+});
+
+function currentPage() {
+  const pages = {
+    home: () => renderHome(),
+    upload: () => renderUpload(state),
+    crop: () => renderCrop(state),
+    creating: () => renderCreating(state),
+    celebrate: () => renderCelebration(state),
+    puzzle: () => renderPuzzle(state),
+    library: () => renderLibrary(state, findJob),
+    work: () => renderWork(state.job),
+    shared: () => renderShared(state),
+    admin: () => renderAdmin(state),
+  };
+  return (pages[state.page] || pages.home)();
+}
+
+function render() {
+  $("#app").innerHTML = currentPage();
+  bindCurrentPage();
+}
+
+function bindCurrentPage() {
+  if ($("#begin")) $("#begin").onclick = () => navigate("upload");
+  if ($("#new")) $("#new").onclick = () => navigate("upload");
+  const binders = {
+    upload: bindUpload,
+    crop: bindCrop,
+    puzzle: bindPuzzle,
+    library: bindLibrary,
+    work: bindWork,
+    admin: bindAdmin,
+  };
+  if (binders[state.page]) binders[state.page]();
+}
+
+function bindUpload() {
+  const picker = $("#photoPicker");
+  const input = $("#photo");
+  const acceptFile = (file) => setUploadFile(file, render);
+
+  input.onchange = (event) => acceptFile(event.target.files[0]);
+  $("#choosePhoto").onclick = (event) => {
+    event.stopPropagation();
+    input.click();
+  };
+  picker.onclick = (event) => {
+    if (event.target !== input && event.target.id !== "choosePhoto") input.click();
+  };
+  picker.onkeydown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      input.click();
+    }
+  };
+  picker.ondragover = (event) => {
+    event.preventDefault();
+    picker.classList.add("dragging");
+  };
+  picker.ondragleave = () => picker.classList.remove("dragging");
+  picker.ondrop = (event) => {
+    event.preventDefault();
+    picker.classList.remove("dragging");
+    acceptFile(event.dataTransfer.files[0]);
+  };
+  $("#toCrop").onclick = () => navigate("crop");
+}
+
+function bindCrop() {
+  const frame = $("#cropFrame");
+  const image = $("#previewImage");
+  const fileInput = $("#cropPhoto");
+  const cropGrid = frame.querySelector(".crop-grid");
+  let drag = null;
+
+  const previewGeometry = () => {
+    if (!image.naturalWidth || !image.naturalHeight) return null;
+    const cropWidth = cropGrid.clientWidth;
+    const cropHeight = cropGrid.clientHeight;
+    const scale = Math.max(
+      cropWidth / image.naturalWidth,
+      cropHeight / image.naturalHeight,
+    );
+    const imageWidth = image.naturalWidth * scale;
+    const imageHeight = image.naturalHeight * scale;
+    return {
+      imageWidth,
+      imageHeight,
+      overflowX: Math.max(0, imageWidth - cropWidth),
+      overflowY: Math.max(0, imageHeight - cropHeight),
+    };
+  };
+
+  const updateFocus = (x, y) => {
+    state.cropFocusX = Math.max(0, Math.min(1, x));
+    state.cropFocusY = Math.max(0, Math.min(1, y));
+    $("#fx").value = String(state.cropFocusX);
+    $("#fy").value = String(state.cropFocusY);
+    const geometry = previewGeometry();
+    if (!geometry) return;
+    const left = (frame.clientWidth - geometry.imageWidth) / 2
+      + (0.5 - state.cropFocusX) * geometry.overflowX;
+    const top = (frame.clientHeight - geometry.imageHeight) / 2
+      + (0.5 - state.cropFocusY) * geometry.overflowY;
+    image.style.width = `${geometry.imageWidth}px`;
+    image.style.height = `${geometry.imageHeight}px`;
+    image.style.left = `${left}px`;
+    image.style.top = `${top}px`;
+  };
+
+  const overflow = () => {
+    const geometry = previewGeometry();
+    if (!geometry) return { x: 0, y: 0 };
+    return {
+      x: geometry.overflowX,
+      y: geometry.overflowY,
+    };
+  };
+
+  frame.onpointerdown = (event) => {
+    event.preventDefault();
+    frame.setPointerCapture(event.pointerId);
+    drag = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      focusX: state.cropFocusX,
+      focusY: state.cropFocusY,
+    };
+    frame.classList.add("dragging");
+  };
+  frame.onpointermove = (event) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const available = overflow();
+    const nextX = available.x
+      ? drag.focusX - (event.clientX - drag.x) / available.x
+      : 0.5;
+    const nextY = available.y
+      ? drag.focusY - (event.clientY - drag.y) / available.y
+      : 0.5;
+    updateFocus(nextX, nextY);
+  };
+  const stopDragging = (event) => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag = null;
+    frame.classList.remove("dragging");
+  };
+  frame.onpointerup = stopDragging;
+  frame.onpointercancel = stopDragging;
+  frame.onkeydown = (event) => {
+    const step = event.shiftKey ? 0.05 : 0.015;
+    const keys = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    };
+    if (!keys[event.key]) return;
+    event.preventDefault();
+    updateFocus(
+      state.cropFocusX + keys[event.key][0],
+      state.cropFocusY + keys[event.key][1],
+    );
+  };
+
+  image.onload = () => updateFocus(state.cropFocusX, state.cropFocusY);
+  if (image.complete) updateFocus(state.cropFocusX, state.cropFocusY);
+  $("#reselect").onclick = () => fileInput.click();
+  fileInput.onchange = (event) => {
+    setUploadFile(event.target.files[0], () => {
+      state.page = "crop";
+      render();
+    });
+  };
+  $("#upload").onclick = createFromUpload;
+}
+
+function setUploadFile(file, onAccepted) {
+  if (!file) return;
+  const validType = ["image/jpeg", "image/png"].includes(file.type);
+  if (!validType || file.size > 5e6) {
+    showError(new Error("请选择5MB以内的JPG或PNG照片"));
+    return;
+  }
+  if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+  state.uploadFile = file;
+  state.previewUrl = URL.createObjectURL(file);
+  state.cropFocusX = 0.5;
+  state.cropFocusY = 0.5;
+  onAccepted();
+}
+
+async function createFromUpload() {
+  const form = new FormData();
+  form.append("photo", state.uploadFile);
+  form.append("focus_x", $("#fx").value);
+  form.append("focus_y", $("#fy").value);
+  state.page = "creating";
+  render();
+  try {
+    state.active = await api("/creations", { method: "POST", body: form });
+    state.page = "puzzle";
+    render();
+  } catch (error) {
+    state.page = "crop";
+    render();
+    showError(error);
+  }
+}
+
+function bindPuzzle() {
+  $$('[data-tile]').forEach((button) => {
+    button.onclick = () => {
+      state.selected = Number(button.dataset.tile);
+      render();
+    };
+  });
+  $$('[data-slot]').forEach((button) => {
+    button.onclick = () => placeSelectedPiece(Number(button.dataset.slot));
+  });
+  $$('[data-answer]').forEach((button) => {
+    button.onclick = () => openQuestion(Number(button.dataset.answer));
+  });
+  $$('[data-memory-review]').forEach((button) => {
+    button.onclick = openMemoryReview;
+  });
+  if ($("#generate")) $("#generate").onclick = startGeneration;
+}
+
+function openMemoryReview() {
+  const creation = state.active;
+  const progress = creation.placed.length / (creation.rows * creation.columns);
+  $("#modal").innerHTML = `
+    <div class="modal-bg memory-review-bg">
+      <section class="memory-review" aria-label="回忆问题列表">
+        ${memoryLabels.map((label, index) => {
+          const answered = Boolean(creation.answers[index]);
+          const unlocked = progress >= (index + 1) / 4;
+          const status = answered ? "点击查看" : unlocked ? "待你填写" : "尚未解锁";
+          return `
+            <button
+              class="memory-review-item ${answered ? "answered" : ""}"
+              data-review-answer="${index}"
+              ${unlocked ? "" : "disabled"}
+            >
+              <i>${(index + 1) * 25}%</i>
+              <span><b>${label}</b><small>${status}</small></span>
+              <em aria-hidden="true">›</em>
+            </button>
+          `;
+        }).join("")}
+      </section>
+    </div>
+  `;
+  $(".memory-review-bg").onclick = (event) => {
+    if (event.target === event.currentTarget) closeModal();
+  };
+  $$('[data-review-answer]').forEach((button) => {
+    button.onclick = () => openQuestion(Number(button.dataset.reviewAnswer));
+  });
+}
+
+function closeModal() {
+  $("#modal").innerHTML = "";
+}
+
+async function placeSelectedPiece(target) {
+  if (state.selected === null) return;
+  try {
+    state.active = await api(`/creations/${state.active.id}/place`, {
+      method: "POST",
+      body: JSON.stringify({ piece: state.selected, target }),
+    });
+    state.selected = null;
+    render();
+    openNextQuestion();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+function openNextQuestion() {
+  const creation = state.active;
+  const progress = creation.placed.length / (creation.rows * creation.columns);
+  const index = creation.answers.findIndex(
+    (answer, questionIndex) => !answer && progress >= (questionIndex + 1) / 4,
+  );
+  if (index >= 0) openQuestion(index);
+}
+
+function openQuestion(index) {
+  state.question = index;
+  $("#modal").innerHTML = `
+    <div class="modal-bg">
+      <section class="modal memory-question">
+        <div class="memory-meta" aria-label="第 ${index + 1} 个回忆问题，共 4 个">
+          <span>MEMORY</span>
+          <span>${String(index + 1).padStart(2, "0")} / 04</span>
+          <span>· ${(index + 1) * 25}%</span>
+        </div>
+        <h2>${questions[index]}</h2>
+        <p>真实的心情就很好，感言不超过100字</p>
+        <textarea id="answer" maxlength="100" rows="5" aria-label="写下这段校园回忆">${escapeHtml(state.active.answers[index])}</textarea>
+        <div class="memory-question-footer">
+          <button class="primary" id="saveAnswer">保存这段回忆 <span aria-hidden="true">→</span></button>
+          <div class="memory-section-title"><span>03&nbsp;&nbsp;聊一聊，心里话</span></div>
+        </div>
+        <img class="memory-question-mascot" src="/assets/design/memory-mascot.png" alt="东小龙">
+      </section>
+    </div>
+  `;
+  $("#saveAnswer").onclick = () => saveAnswer(index);
+}
+
+async function saveAnswer(index) {
+  try {
+    state.active = await api(`/creations/${state.active.id}/answer`, {
+      method: "PUT",
+      body: JSON.stringify({ index, text: $("#answer").value }),
+    });
+    closeModal();
+    render();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function startGeneration() {
+  state.page = "celebrate";
+  render();
+  await new Promise((resolve) => window.setTimeout(resolve, 1800));
+  try {
+    state.job = await api(`/creations/${state.active.id}/generate`, {
+      method: "POST",
+      body: JSON.stringify({ mode: "real" }),
+    });
+    state.page = "work";
+    render();
+    pollJob();
+  } catch (error) {
+    state.page = "puzzle";
+    render();
+    showError(error);
+  }
+}
+
+function bindLibrary() {
+  $$('[data-open]').forEach((button) => {
+    button.onclick = () => openCreation(button.dataset.open);
+  });
+  $$('[data-delete]').forEach((button) => {
+    button.onclick = () => confirmDelete(button.dataset.delete);
+  });
+}
+
+async function openCreation(creationId) {
+  const job = findJob(creationId);
+  try {
+    if (job) {
+      state.job = job;
+      state.page = "work";
+      render();
+      pollJob();
+    } else {
+      state.active = await api(`/creations/${creationId}`);
+      state.page = "puzzle";
+      render();
+      openNextQuestion();
+    }
+  } catch (error) {
+    showError(error);
+  }
+}
+
+function confirmDelete(creationId) {
+  $("#modal").innerHTML = `
+    <div class="modal-bg">
+      <section class="modal">
+        <h2>删除这段回忆？</h2>
+        <p>原图、答案、视频和分享链接会一起永久删除。</p>
+        <div class="actions">
+          <button class="secondary" id="cancel">取消</button>
+          <button class="danger" id="confirm">确认删除</button>
+        </div>
+      </section>
+    </div>
+  `;
+  $("#cancel").onclick = () => { $("#modal").innerHTML = ""; };
+  $("#confirm").onclick = () => deleteCreation(creationId);
+}
+
+async function deleteCreation(creationId) {
+  try {
+    await api(`/creations/${creationId}`, { method: "DELETE" });
+    $("#modal").innerHTML = "";
+    await refreshData();
+    render();
+    showToast("作品已删除");
+  } catch (error) {
+    showError(error);
+  }
+}
+
+function pollJob() {
+  if (!state.job || !["QUEUED", "RUNNING"].includes(state.job.status)) return;
+  window.setTimeout(async () => {
+    try {
+      state.job = await api(`/jobs/${state.job.id}`);
+      render();
+      pollJob();
+    } catch (error) {
+      showError(error);
+    }
+  }, 1800);
+}
+
+function bindWork() {
+  if ($("#retry")) $("#retry").onclick = retryJob;
+  if ($("#share")) $("#share").onclick = createShare;
+  if ($("#copy")) $("#copy").onclick = copyShare;
+  if ($("#revoke")) $("#revoke").onclick = revokeShare;
+}
+
+async function retryJob() {
+  try {
+    state.job = await api(`/jobs/${state.job.id}/retry`, { method: "POST" });
+    render();
+    pollJob();
+  } catch (error) { showError(error); }
+}
+
+async function createShare() {
+  try {
+    track("share_click");
+    const result = await api(`/jobs/${state.job.id}/share`, { method: "POST" });
+    state.job.share = result.token;
+    render();
+  } catch (error) { showError(error); }
+}
+
+async function copyShare() {
+  await navigator.clipboard.writeText(`${location.origin}/?share=${state.job.share}`);
+  track("share_copy");
+  showToast("链接已复制");
+}
+
+async function revokeShare() {
+  try {
+    await api(`/jobs/${state.job.id}/share`, { method: "DELETE" });
+    state.job.share = null;
+    render();
+    showToast("分享已撤销");
+  } catch (error) { showError(error); }
+}
+
+async function loadStats() {
+  try {
+    state.stats = await api("/admin/stats");
+    state.admin = true;
+  } catch {
+    state.admin = false;
+  }
+  render();
+}
+
+function bindAdmin() {
+  if ($("#login")) $("#login").onsubmit = loginAdmin;
+  if ($("#statsRefresh")) $("#statsRefresh").onclick = refreshStats;
+  if ($("#logout")) $("#logout").onclick = logoutAdmin;
+  if ($("#music")) $("#music").onchange = uploadMusic;
+}
+
+async function loginAdmin(event) {
+  event.preventDefault();
+  try {
+    await api("/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ password: $("#password").value }),
+    });
+    await loadStats();
+  } catch (error) { showError(error); }
+}
+
+async function refreshStats() {
+  try {
+    const start = $("#start").value;
+    const end = $("#end").value;
+    state.stats = await api(`/admin/stats?start=${start}&end=${end}`);
+    render();
+  } catch (error) { showError(error); }
+}
+
+async function logoutAdmin() {
+  await api("/admin/logout", { method: "POST" });
+  state.admin = false;
+  render();
+}
+
+async function uploadMusic(event) {
+  try {
+    const form = new FormData();
+    form.append("file", event.target.files[0]);
+    await api("/admin/music", { method: "POST", body: form });
+    await refreshData();
+    await loadStats();
+    showToast("音乐已配置");
+  } catch (error) { showError(error); }
+}
+
+async function initialize() {
+  try {
+    await api("/session", { method: "POST" });
+    track("visit");
+    const token = new URLSearchParams(location.search).get("share");
+    if (token) {
+      state.page = "shared";
+      state.share = await api(`/shared/${token}`);
+      track("share_open");
+    } else {
+      await refreshData();
+      const route = location.hash.slice(1);
+      if (["library", "admin"].includes(route)) state.page = route;
+    }
+    render();
+  } catch (error) {
+    showError(error);
+    render();
+  }
+}
+
+initialize();

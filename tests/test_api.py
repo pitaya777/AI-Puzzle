@@ -28,7 +28,7 @@ def test_story_validation_contract():
   intervals=[(0,3),(3,7),(7,11),(11,16),(16,21),(21,25),(25,30)]
   scenes=[{'start':start,'end':end,'visual':'校园画面','performance':'主角前行','camera':'镜头跟随','music':'钢琴渐强','sound_effect':'风声','narration':'青春仍在','transition':'自然转场'} for start,end in intervals]
   prompt='。'.join(f'{start}-{end} 秒：连续的校园回忆画面' for start,end in intervals)
-  valid={'title':'校园时光','story':'忆'*600,'video_prompt':prompt+'忆'*(900-len(prompt)),'scenes':scenes}
+  valid={'title':'校园时光','story':'忆'*300,'video_prompt':prompt+'忆'*(900-len(prompt)),'scenes':scenes}
   assert validate_story(valid)
   assert not validate_story({**valid,'story':'太短'})
   assert not validate_story({**valid,'scenes':valid['scenes'][:6]})
