@@ -121,27 +121,6 @@
   }
 }
 
-@media(max-width:900px) {
-  .dashboard {
-    grid-template-columns:1fr
-  }
-  .dashboard>aside {
-    display:none
-  }
-  .dashboard>main {
-    padding:25px
-  }
-  .dashboard>main>header {
-    display:block
-  }
-  .admin-tools {
-    flex-wrap:wrap
-  }
-  .dashboard .stats,.dashboard .admin-grid {
-    grid-template-columns:1fr 1fr
-  }
-}
-
 /* Responsive alert alignment */
 .error {
   width:100%;

@@ -10,7 +10,7 @@ Windows双击 `start.cmd`，或在PowerShell运行：
 .\start.ps1
 ```
 
-浏览器访问 `http://127.0.0.1:8001`。后台密码首次启动后生成在 `data/admin-password.txt`。停止服务运行 `stop.cmd`。
+浏览器访问 `http://127.0.0.1:8001`。管理后台默认用户名为 `admin`（可通过 `.env` 的 `ADMIN_USERNAME` 修改），密码首次启动后生成在 `data/admin-password.txt`。停止服务运行 `stop.cmd`。
 
 默认无需Docker、MySQL或系统FFmpeg；首次启动自动创建Python环境并安装依赖。数据写入 `data/`。访客作品与浏览器Cookie绑定，清除Cookie后无法找回，请及时下载。
 

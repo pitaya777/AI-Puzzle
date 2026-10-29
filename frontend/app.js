@@ -29,6 +29,7 @@ function navigate(page) {
   history.replaceState(null, "", `#${page}`);
   render();
   scrollTo(0, 0);
+  if (page === "home") track("homepage_visit");
   if (page === "library") refreshData().then(render).catch(showError);
   if (page === "admin") loadStats();
 }
@@ -68,6 +69,7 @@ function bindCurrentPage() {
     puzzle: bindPuzzle,
     library: bindLibrary,
     work: bindWork,
+    shared: bindShared,
     admin: bindAdmin,
   };
   if (binders[state.page]) binders[state.page]();
@@ -460,6 +462,11 @@ function bindWork() {
   if ($("#revoke")) $("#revoke").onclick = revokeShare;
 }
 
+function bindShared() {
+  const video = $(".result-grid video");
+  if (video) video.addEventListener("play", () => track("share_open"), { once: true });
+}
+
 async function retryJob() {
   try {
     state.job = await api(`/jobs/${state.job.id}/retry`, { method: "POST" });
@@ -470,7 +477,6 @@ async function retryJob() {
 
 async function createShare() {
   try {
-    track("share_click");
     const result = await api(`/jobs/${state.job.id}/share`, { method: "POST" });
     state.job.share = result.token;
     render();
@@ -479,7 +485,7 @@ async function createShare() {
 
 async function copyShare() {
   await navigator.clipboard.writeText(`${location.origin}/?share=${state.job.share}`);
-  track("share_copy");
+  track("share_success");
   showToast("链接已复制");
 }
 
@@ -506,7 +512,27 @@ function bindAdmin() {
   if ($("#login")) $("#login").onsubmit = loginAdmin;
   if ($("#statsRefresh")) $("#statsRefresh").onclick = refreshStats;
   if ($("#logout")) $("#logout").onclick = logoutAdmin;
-  if ($("#music")) $("#music").onchange = uploadMusic;
+  $$('[data-admin-section]').forEach((button) => {
+    button.onclick = () => {
+      state.adminSection = button.dataset.adminSection;
+      render();
+      window.scrollTo(0, 0);
+    };
+  });
+  if ($("#trafficPageSize")) {
+    $("#trafficPageSize").onchange = (event) => {
+      state.adminTrafficPageSize = Number(event.target.value);
+      state.adminTrafficPage = 1;
+      render();
+    };
+  }
+  $$('[data-traffic-page]').forEach((button) => {
+    button.onclick = () => {
+      state.adminTrafficPage = Number(button.dataset.trafficPage);
+      render();
+      window.scrollTo(0, 0);
+    };
+  });
 }
 
 async function loginAdmin(event) {
@@ -514,9 +540,13 @@ async function loginAdmin(event) {
   try {
     await api("/admin/login", {
       method: "POST",
-      body: JSON.stringify({ password: $("#password").value }),
+      body: JSON.stringify({
+        username: $("#username").value,
+        password: $("#password").value,
+      }),
     });
     await loadStats();
+    window.scrollTo(0, 0);
   } catch (error) { showError(error); }
 }
 
@@ -525,6 +555,7 @@ async function refreshStats() {
     const start = $("#start").value;
     const end = $("#end").value;
     state.stats = await api(`/admin/stats?start=${start}&end=${end}`);
+    state.adminTrafficPage = 1;
     render();
   } catch (error) { showError(error); }
 }
@@ -533,32 +564,21 @@ async function logoutAdmin() {
   await api("/admin/logout", { method: "POST" });
   state.admin = false;
   render();
-}
-
-async function uploadMusic(event) {
-  try {
-    const form = new FormData();
-    form.append("file", event.target.files[0]);
-    await api("/admin/music", { method: "POST", body: form });
-    await refreshData();
-    await loadStats();
-    showToast("音乐已配置");
-  } catch (error) { showError(error); }
+  window.scrollTo(0, 0);
 }
 
 async function initialize() {
   try {
     await api("/session", { method: "POST" });
-    track("visit");
     const token = new URLSearchParams(location.search).get("share");
     if (token) {
       state.page = "shared";
       state.share = await api(`/shared/${token}`);
-      track("share_open");
     } else {
       await refreshData();
       const route = location.hash.slice(1);
       if (["library", "admin"].includes(route)) state.page = route;
+      else track("homepage_visit");
     }
     render();
   } catch (error) {

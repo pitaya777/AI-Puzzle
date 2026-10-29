@@ -1,7 +1,7 @@
 from __future__ import annotations
 import base64, hashlib, hmac, io, json, mimetypes, os, secrets, shutil, sqlite3, subprocess, sys, threading, time
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -268,16 +268,21 @@ class EventIn(BaseModel):id:str=Field(min_length=16,max_length=80);kind:str
 @app.post('/api/events')
 def event(body:EventIn,campus_guest:str|None=Cookie(None)):
     guest_id(campus_guest)
-    if body.kind not in {'visit','share_click','share_copy','share_open'}:raise HTTPException(422,'事件无效')
+    if body.kind not in {'homepage_visit','share_success','share_open'}:raise HTTPException(422,'事件无效')
     with db() as c:c.execute('INSERT OR IGNORE INTO events VALUES(?,?,?)',(body.id,body.kind,now()))
     return {'ok':True}
-class Password(BaseModel):password:str=Field(max_length=200)
+class AdminCredentials(BaseModel):
+    username:str=Field(min_length=1,max_length=80)
+    password:str=Field(min_length=1,max_length=200)
 fails:dict[str,list[float]]={}
 @app.post('/api/admin/login')
-def admin_login(body:Password,request:Request,response:Response):
+def admin_login(body:AdminCredentials,request:Request,response:Response):
     ip=request.client.host if request.client else 'local';attempts=[x for x in fails.get(ip,[]) if time.time()-x<300]
     if len(attempts)>=5:raise HTTPException(429,'尝试过多，请5分钟后重试')
-    if not hmac.compare_digest(body.password,(DATA/'admin-password.txt').read_text().strip()):fails[ip]=attempts+[time.time()];raise HTTPException(401,'后台密码错误')
+    expected_username=os.getenv('ADMIN_USERNAME','admin').strip() or 'admin'
+    username_ok=hmac.compare_digest(body.username.strip(),expected_username)
+    password_ok=hmac.compare_digest(body.password,(DATA/'admin-password.txt').read_text().strip())
+    if not username_ok or not password_ok:fails[ip]=attempts+[time.time()];raise HTTPException(401,'用户名或密码错误')
     fails.pop(ip,None);stamp=str(int(time.time()));key=(DATA/'admin-session-key.txt').read_text().strip();token=stamp+'.'+hmac.new(key.encode(),stamp.encode(),'sha256').hexdigest();response.set_cookie('campus_admin',token,httponly=True,samesite='strict',max_age=28800);return {'ok':True}
 @app.post('/api/admin/logout')
 def logout(response:Response):response.delete_cookie('campus_admin');return {'ok':True}
@@ -289,15 +294,17 @@ def stats(start:str='',end:str='',campus_admin:str|None=Cookie(None)):
         if end:datetime.strptime(end,'%Y-%m-%d')
     except ValueError:raise HTTPException(422,'日期格式错误')
     if start and end and start>end:raise HTTPException(422,'开始日期不能晚于结束日期')
-    sql='SELECT * FROM events WHERE 1=1';args=[]
-    if start:sql+=' AND created>=?';args.append(start)
-    if end:sql+=' AND created<?';args.append(end+'T23:59:59.999999+00:00')
-    totals={x:0 for x in ['visit','share_click','share_copy','share_open']};daily={}
+    totals={x:0 for x in ['visit','share_success','share_open']};daily={}
     with db() as c:
-        for r in c.execute(sql,args):
-            day=r['created'][:10];totals[r['kind']]+=1;daily.setdefault(day,{x:0 for x in totals})[r['kind']]+=1
-        job_counts={r[0]:r[1] for r in c.execute('SELECT status,count(*) FROM jobs GROUP BY status')};budget=float(c.execute("SELECT value FROM state WHERE key='budget'").fetchone()[0])
-    return {'total':totals,'daily':[{'date':k,**v} for k,v in sorted(daily.items(),reverse=True)],'jobs':job_counts,'reserved':budget,'config':config()}
+        for r in c.execute('SELECT * FROM events'):
+            key='visit' if r['kind']=='homepage_visit' else r['kind']
+            if key not in totals:continue
+            day=datetime.fromisoformat(r['created']).astimezone(timezone(timedelta(hours=8))).date().isoformat()
+            if start and day<start:continue
+            if end and day>end:continue
+            totals[key]+=1;daily.setdefault(day,{x:0 for x in totals})[key]+=1
+        job_counts={r[0]:r[1] for r in c.execute('SELECT status,count(*) FROM jobs GROUP BY status')}
+    return {'total':totals,'daily':[{'date':k,**v} for k,v in sorted(daily.items(),reverse=True)],'jobs':job_counts}
 @app.post('/api/admin/music')
 async def upload_music(file:UploadFile=File(...),campus_admin:str|None=Cookie(None)):
     require_admin(campus_admin);raw=await file.read(20_000_001)

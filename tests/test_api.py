@@ -1,4 +1,4 @@
-import io,os,tempfile
+import io,os,tempfile,uuid
 from pathlib import Path
 os.environ['PYTHONHASHSEED']='0'
 from fastapi.testclient import TestClient
@@ -18,11 +18,26 @@ def test_isolation_threshold_and_admin(monkeypatch):
     assert a.put(f'/api/creations/{cid}/answer',json={'index':0,'text':'图书馆'}).status_code==200
     assert a.put(f'/api/creations/{cid}/answer',json={'index':1,'text':'老师'}).status_code==422
     assert a.get('/api/admin/stats').status_code==401
-    password=(DATA/'admin-password.txt').read_text().strip();assert a.post('/api/admin/login',json={'password':password}).status_code==200;assert a.get('/api/admin/stats').status_code==200
+    password=(DATA/'admin-password.txt').read_text().strip();assert a.post('/api/admin/login',json={'username':'admin','password':password}).status_code==200;assert a.get('/api/admin/stats').status_code==200
 def test_bad_file_and_csrf():
   with TestClient(app) as c:
     c.post('/api/session');assert c.post('/api/creations',files={'photo':('a.png',b'bad','image/png')}).status_code==422
     assert c.post('/api/session',headers={'Origin':'https://evil.example'}).status_code==403
+
+def test_admin_event_statistics_are_counted_and_deduplicated():
+  with TestClient(app) as c:
+    c.post('/api/session')
+    password=(DATA/'admin-password.txt').read_text().strip()
+    assert c.post('/api/admin/login',json={'username':'admin','password':password}).status_code==200
+    before=c.get('/api/admin/stats').json()['total']
+    event_ids={kind:uuid.uuid4().hex for kind in ('homepage_visit','share_success','share_open')}
+    for kind,event_id in event_ids.items():
+      assert c.post('/api/events',json={'id':event_id,'kind':kind}).status_code==200
+      assert c.post('/api/events',json={'id':event_id,'kind':kind}).status_code==200
+    assert c.post('/api/events',json={'id':uuid.uuid4().hex,'kind':'admin_visit'}).status_code==422
+    after=c.get('/api/admin/stats').json()['total']
+    assert after['visit'] == before['visit'] + 1
+    for kind in ('share_success','share_open'): assert after[kind] == before[kind] + 1
 
 def test_story_validation_contract():
   intervals=[(0,3),(3,7),(7,11),(11,16),(16,21),(21,25),(25,30)]
